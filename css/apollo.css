@@ -822,9 +822,11 @@ main.container {
     margin-top: 0; }
   .archive .post-item {
     padding-left: 20px; }
-  .post-content h2, .post-content h3, .post-content h4, .post-content h5, .post-content h6 {
+  .post-content h2, .post-content h3 {
     max-width: 300px;
     left: 15px; }
+  .post-content h4, .post-content h5, .post-content h6 {
+    max-width: 300px; }
   .ds-thread,
   #disqus_thread {
     margin: 2em 10px; } }

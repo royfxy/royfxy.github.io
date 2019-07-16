@@ -10,7 +10,7 @@
 <p>本次受影响网站出现的 <a href="https://en.wikipedia.org/wiki/List_of_HTTP_status_codes#5xx_Server_errors" target="_blank" rel="noopener">502</a> 页面</p>
 <p><img src="/images/RegularExpressionBacktracking/502Page.png" alt="502Page"></p>
 </blockquote>
-<p>宕机的元凶是 <del>@带带大师兄</del> Cloudflare 在测试的一个新添加到 <a href="https://en.wikipedia.org/wiki/Web_application_firewall" target="_blank" rel="noopener">WAF</a> 规则集中的正则表达式，它极容易产生回溯，不巧 Cloudflare WAF 的 CPU 使用保护机制失效，导致在测试时匹配这个正则表达式消耗了大量计算资源，几乎榨干了了负责处理 HTTP/HTTPS 流量的 CPU。</p>
+<p>宕机的元凶是 <del>@带带大师兄</del> Cloudflare 在测试的一个新添加到 <a href="https://en.wikipedia.org/wiki/Web_application_firewall" target="_blank" rel="noopener">WAF</a> 规则集中的正则表达式，它极容易产生回溯，不巧 Cloudflare WAF 的 CPU 使用保护机制失效，导致在测试时正则表达式引擎消耗了大量计算资源，几乎榨干了了负责处理 HTTP/HTTPS 流量的 CPU。</p>
 <hr>
 <h2 id="正则表达式的回溯"><a href="#正则表达式的回溯" class="headerlink" title="正则表达式的回溯"></a>正则表达式的回溯</h2><blockquote>
 <p><del>什么是正则表达式的回溯？正则表达式的回溯有什么用？怎么才能让正则表达式发生回溯？正则表达式的回溯为什么会耗尽 CPU 资源？小编今天来解答一下大家有关正则表达式的回溯的困惑。</del></p>
