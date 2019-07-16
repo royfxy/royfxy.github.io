@@ -2,14 +2,21 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
-    <loc>https://fxy.one/2019/07/16/RegularExpressionBacktracking/</loc>
+    <loc>http://fxy.one/links/index.html</loc>
+    
+    <lastmod>2019-07-16T14:03:35.224Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://fxy.one/2019/07/16/RegularExpressionBacktracking/</loc>
     
     <lastmod>2019-07-16T13:45:59.788Z</lastmod>
     
   </url>
   
   <url>
-    <loc>https://fxy.one/2019/07/16/hello-world/</loc>
+    <loc>http://fxy.one/2019/07/16/hello-world/</loc>
     
     <lastmod>2019-07-16T12:37:52.636Z</lastmod>
     
