@@ -1,0 +1,61 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.9.0"><meta charset="utf-8"><meta name="X-UA-Compatible" content="IE=edge"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><title> 正则表达式回溯引发的灾难 · FXY.ONE</title><meta name="description" content="正则表达式回溯引发的灾难 - Roy Fu"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="/css/apollo.css"><link rel="search" type="application/opensearchdescription+xml" href="https://fxy.one/atom.xml" title="FXY.ONE"></head><body><div class="wrap"><header><a href="/" class="logo-link"><img src="/logo.png" alt="logo"></a><ul class="nav nav-list"><li class="nav-list-item"><a href="/" target="_self" class="nav-list-link">home</a></li><li class="nav-list-item"><a href="/archives/" target="_self" class="nav-list-link">archive</a></li><li class="nav-list-item"><a href="/links.html" target="_self" class="nav-list-link">links</a></li><li class="nav-list-item"><a href="/about" target="_self" class="nav-list-link">about</a></li><li class="nav-list-item"><a href="/atom.xml" target="_self" class="nav-list-link">rss</a></li></ul></header><main class="container"><div class="post"><article class="post-block"><h1 class="post-title">正则表达式回溯引发的灾难</h1><div class="post-info">2019年7月16日</div><div class="post-content"><p>如果你尝试用正则表达式解决一个问题，那么恭喜，现在你有两个问题了。</p>
+<a id="more"></a>
+
+<h2 id="起源"><a href="#起源" class="headerlink" title="起源"></a>起源</h2><p>今年 7 月 2 日，<a href="https://www.cloudflare.com/" target="_blank" rel="noopener">Cloudflare</a> 发生了一次大规模的宕机，许多使用了 Cloudflare 服务的网站出现 <a href="https://en.wikipedia.org/wiki/List_of_HTTP_status_codes#5xx_Server_errors" target="_blank" rel="noopener">502</a> 错误，持续了大约半小时。</p>
+<blockquote>
+<p>安纳金带领的 <a href="https://starwars.fandom.com/wiki/501st_Legion" target="_blank" rel="noopener">501</a> 军团</p>
+<p><img src="/images/RegularExpressionBacktracking/anakin501.png" alt="501"></p>
+</blockquote>
+<blockquote>
+<p>本次受影响网站出现的 <a href="https://en.wikipedia.org/wiki/List_of_HTTP_status_codes#5xx_Server_errors" target="_blank" rel="noopener">502</a> 页面</p>
+<p><img src="/images/RegularExpressionBacktracking/502Page.png" alt="502Page"></p>
+</blockquote>
+<p>宕机的元凶是 <del>@带带大师兄</del> Cloudflare 在测试的一个新添加到 <a href="https://en.wikipedia.org/wiki/Web_application_firewall" target="_blank" rel="noopener">WAF</a> 规则集中的正则表达式，它极容易产生回溯，不巧 Cloudflare WAF 的 CPU 使用保护机制失效，导致在测试时匹配这个正则表达式消耗了大量计算资源，几乎榨干了了负责处理 HTTP/HTTPS 流量的 CPU。</p>
+<hr>
+<h2 id="正则表达式的回溯"><a href="#正则表达式的回溯" class="headerlink" title="正则表达式的回溯"></a>正则表达式的回溯</h2><blockquote>
+<p><del>什么是正则表达式的回溯？正则表达式的回溯有什么用？怎么才能让正则表达式发生回溯？正则表达式的回溯为什么会耗尽 CPU 资源？小编今天来解答一下大家有关正则表达式的回溯的困惑。</del></p>
+<p><del>好了，以上就是关于正则表达式的回溯的全部内容了，如果对你有帮助的话欢迎点赞收藏关注，也欢迎在下方留言告诉我你的想法。</del></p>
+</blockquote>
+<h4 id="化简"><a href="#化简" class="headerlink" title="化简"></a>化简</h4><p>这是导致这次宕机的正则表达式：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">(?:(?:\&quot;|&apos;|\]|\&#125;|\\|\d|(?:nan|infinity|true|false|null|undefined|symbol|math)|\`|\-|\+)+[)]*;?((?:\s|-|~|!|&#123;&#125;|\|\||\+)*.*(?:.*=.*)))</span><br></pre></td></tr></table></figure>
+
+<p>先别急着关掉网页，尽管它看起来非常长，我们需要关注的仅是其中的一小段关键部分：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">.*(?:.*=.*)</span><br></pre></td></tr></table></figure>
+
+<p><code>(?:</code>和<code>)</code>表示它们中间是一个<em>非捕获组</em>，意思是两个括号间的内容需要匹配，但在匹配之后会被扔掉。由于我们关注的是匹配的过程，此处的<code>(?:</code>和<code>)</code>也可以被忽略，最终化简后的表达式是</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">.*.*=.*</span><br></pre></td></tr></table></figure>
+
+<p>它从表面看上去非常简单，<code>.</code>表示匹配一个任意字符，<code>.*</code>即表示匹配零个或多个任意字符。因此上述表达式先匹配<strong>零个到多个任意字符</strong>，然后又匹配<strong>零个到多个任意字符</strong>，再匹配一个<strong>等于符号<code>=</code></strong>，最后再匹配<strong>零个到多个任意字符</strong>。如下图所示。</p>
+<br>
+
+<p><img src="/images/RegularExpressionBacktracking/CloudflareNFA01.png" alt="NFA"></p>
+<br>
+
+<p>这个看似人畜无害的正则表达式，又是如何走向吃尽计算资源的深渊的呢？</p>
+<br>
+
+<h4 id="贪婪匹配"><a href="#贪婪匹配" class="headerlink" title="贪婪匹配"></a>贪婪匹配</h4><p>正则表达式默认使用贪婪匹配原则匹配字符串，也就是说，<code>.*</code>会尽可能多地匹配字符。</p>
+<p>我们以字符串<code>x=x</code>为例。</p>
+<p>第一次尝试时，为首的<code>.*</code>会匹配整个<code>x=x</code>，接着第二个<code>.*</code>只能匹配零个字符。而到了匹配<code>=</code>时，由于剩余的字符串已经空了，它找不到那个对应的<code>=</code>，匹配失败。</p>
+<p>此时正则表达式引擎开始回溯，进行第二次尝试。第一个<code>.*</code>现在仅匹配字符串中的前两个字符<code>x=</code>，第二个贪婪的<code>.*</code>将剩下的<code>x</code>匹配掉了，<code>=</code>仍然只能面对一个空字符串，匹配失败。</p>
+<p>现在两个<code>.*</code>依次匹配了<code>x=</code>和<code>x</code>，引擎会选择后者进行回溯，那么第三次尝试，前一个<code>.*</code>匹配<code>x=</code>，后一个<code>.*</code>匹配零个字符，留给<code>=</code>的，只剩一个<code>x</code>，匹配又失败了。</p>
+<p>第四次尝试，<code>.*</code>只匹配<code>x</code>，然而后一个贪婪的<code>.*</code>又把<code>=x</code>吃掉了，<code>=</code>还是只能面对一个空字符串。匹配失败。</p>
+<p>按照同样的原理，又经历了两轮回溯之后，终于前一<code>.*</code>只匹配<code>x</code>，后一<code>.*</code>匹配零个字符串，<code>=</code>才得以匹配成功，最后一个<code>.*</code>匹配末尾的<code>x</code>，整个正则表达式匹配完成。</p>
+<p>全部过程由下图表示。</p>
+<p><img src="/images/RegularExpressionBacktracking/backtracks.png" alt="backtracks"></p>
+<p>仅一个包含三个字符的字符串，就要进行 5 次回溯，共 23 步的匹配过程，同时显然，匹配步骤数量是随等号后的字符数量呈指数级上升的，当匹配<code>x=xx</code>时，需要 33 步，匹配<code>x=xxxxxxxxxxxxxxxxxxxx</code>需要 555 步。</p>
+<blockquote>
+<p>你可以到 <a href="https://metacpan.org/pod/Regexp::Debugger" target="_blank" rel="noopener">Perl Regexp::Debugger</a> 直观地查看正则表达式引擎如何回溯。下图展示了<code>x=x</code>的匹配过程。</p>
+<p><img src="/images/RegularExpressionBacktracking/backtrackingSteps.gif" alt="backtracking steps"></p>
+</blockquote>
+<h4 id="懒惰匹配"><a href="#懒惰匹配" class="headerlink" title="懒惰匹配"></a>懒惰匹配</h4><p>懒惰匹配能在一定程度上解决上述问题，</p>
+<h4 id="真正的解决方法"><a href="#真正的解决方法" class="headerlink" title="真正的解决方法"></a>真正的解决方法</h4><hr>
+</div></article></div></main><footer><div class="paginator"><a href="/2019/07/16/hello-world/" class="next">下一篇</a></div><div id="disqus_thread"></div><script>var disqus_shortname = 'xiaopc-1';
+var disqus_identifier = '2019/07/16/RegularExpressionBacktracking/';
+var disqus_title = '正则表达式回溯引发的灾难';
+var disqus_url = 'https://fxy.one/2019/07/16/RegularExpressionBacktracking/';
+(function() {
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();</script><script id="dsq-count-scr" src="//xiaopc-1.disqus.com/count.js" async></script><div class="copyright"><p>© 2019 <a href="https://fxy.one">Roy Fu</a>, <a href="https://hexo.io/" target="_blank">hexo</a> & <a href="https://github.com/pinggod/hexo-theme-apollo" target="_blank">hexo-theme-apollo</a>.</p></div></footer></div><script async src="//cdnjs.loli.net/ajax/libs/mathjax/2.7.2-rc/MathJax.js?config=TeX-AMS-MML_HTMLorMML" crossorigin="anonymous"></script><script>(function(b,o,i,l,e,r){b.GoogleAnalyticsObject=l;b[l]||(b[l]=function(){(b[l].q=b[l].q||[]).push(arguments)});b[l].l=+new Date;e=o.createElement(i);r=o.getElementsByTagName(i)[0];e.src='//www.google-analytics.com/analytics.js';r.parentNode.insertBefore(e,r)}(window,document,'script','ga'));ga('create',"UA-23646862-3",'auto');ga('send','pageview');</script></body></html>
