@@ -57,7 +57,7 @@
 <p>要在默认使用贪婪匹配的引擎中声明使用懒惰匹配原则，只需要将<code>.*</code>替换为<code>.*?</code>。声明使用懒惰匹配原则后，<code>.*?.*?=.*?</code>匹配字符串<code>x=x</code>从 23 步减少到了 11 步，与匹配<code>x=xxxxxxxxxxxxxxxxxxxx</code>一致。</p>
 <br>
 
-<p>尽管懒惰匹配原则能够解决此次导致 Cloudflare 问题的这个<strong>特定形式的正则表达式</strong>，但其仍然存在潜在的回溯问题。</p>
+<p>尽管懒惰匹配原则能够解决此次导致 Cloudflare 宕机的这个<strong>特定形式的正则表达式</strong>，但其仍然存在潜在的回溯问题。</p>
 <p>如果我们将正则表达式末尾添加一个分号，改写为<code>.*.*=.*;</code>，或申明懒惰匹配的写法<code>.*?.*?=.*?;</code>，两者在处理匹配失败的字符串时所需要的步数是相同的，如<code>x=x</code>都需要耗费 90 步才能知道匹配失败，而<code>x=</code>后面有 20 个 <code>x</code>时，从原来 555 步增加到了惊人的 5353 步。</p>
 <blockquote>
 <p>下图展示了引擎是如何走了 5353 步才发现<code>x=xxxxxxxxxxxxxxxxxxxx</code>匹配失败的。</p>
@@ -66,7 +66,7 @@
 </blockquote>
 <br>
 
-<h4 id="真正的解决方法"><a href="#真正的解决方法" class="headerlink" title="真正的解决方法"></a>真正的解决方法</h4><p>通过改写正则表达式本身消除回溯的方法并不能一劳永逸地解决问题，由于正则表达式本身可读性差，无法指望人工完全消除隐含的回溯。尽管存在相应检测工具，但其一般靠随机数据暴力穷举，费时费力，不能真正解决问题。要完全消除回溯带来的性能问题需要从正则表达式引擎本身入手。</p>
+<h4 id="真正的解决方法"><a href="#真正的解决方法" class="headerlink" title="真正的解决方法"></a>真正的解决方法</h4><p>通过改写正则表达式本身消除回溯的方法并不能一劳永逸地解决问题，由于正则表达式本身可读性差，无法指望人工完全消除隐含的回溯。尽管存在相应检测工具，但其一般靠随机数据暴力穷举，费时费力。要完全消除回溯带来的性能问题需要从正则表达式引擎本身入手。</p>
 <p>好在 1968 年，<a href="https://en.wikipedia.org/wiki/Ken_Thompson" target="_blank" rel="noopener">Ken Thompson</a> 发表的一篇论文 <a href="https://dl.acm.org/citation.cfm?doid=363347.363387" target="_blank" rel="noopener">Programming Techniques: Regular expression search algorithm</a> 提出了解决办法。这篇论文阐述了一种将正则表达式转换为非确定性有穷自动机（NFA）的方法，然后根据在 NFA 中状态的转换，实现正则表达式的匹配。即使是带有回溯的正则表达式的匹配过程，这种算法的时间复杂度与字符串长度也仅呈线性关系。</p>
 <p>下面仍以<code>.*.*=.*</code>匹配<code>x=x</code>为例。</p>
 <p>先在每一个符号之间添加一个状态，匹配的过程就是状态之间的转移，画出 NFA 如下：</p>
